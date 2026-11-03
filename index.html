@@ -1,15 +1,41 @@
 <!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<style>html,body{margin:0;background:transparent}body{padding:0 12px}</style>
-<div class="giscus"></div>
+<style>
+html,body{margin:0;background:transparent}body{padding:0 12px;font:13px system-ui,sans-serif}
+.tabs{display:flex;gap:6px;margin:10px 0}
+.tabs button{flex:1;padding:7px;border:1px solid #888;border-radius:8px;background:transparent;color:#ccc;cursor:pointer;font:inherit}
+.tabs.light button{color:#333}
+.tabs button.on{background:#7c8cff;color:#fff;border-color:#7c8cff}
+</style>
+<div class="tabs" id="tabs"></div><div class="giscus" id="g"></div>
 <script>
-const q=new URLSearchParams(location.search), s=document.createElement('script');
-s.src='https://giscus.app/client.js'; s.async=true; s.crossOrigin='anonymous';
-Object.entries({
- 'data-repo':'Piyush-1927/hayate-comments','data-repo-id':'R_kgDOVhLt7w',
- 'data-category':'Announcements','data-category-id':'DIC_kwDOVhLt784DKR-X',
- 'data-mapping':'number','data-term':q.get('n')||'','data-strict':'0',
- 'data-reactions-enabled':'1','data-emit-metadata':'0','data-input-position':'top',
- 'data-theme':q.get('theme')||'transparent_dark','data-lang':'en'
-}).forEach(([k,v])=>s.setAttribute(k,v));
-document.head.appendChild(s);
+const q=new URLSearchParams(location.search), theme=q.get('theme')||'transparent_dark';
+const n=q.get('n'), a=q.get('a'), ep=q.get('ep'), tabs=[];
+if(n) tabs.push({label:'Season', mapping:'number', term:n, strict:'0'});
+if(a&&ep) tabs.push({label:'Episode '+ep, mapping:'specific', term:'anilist-'+a+'-ep'+ep, strict:'1'});
+if(!tabs.length&&n) tabs.push({label:'Season', mapping:'number', term:n, strict:'0'});
+function load(t){
+  const g=document.getElementById('g'); g.innerHTML='';
+  document.querySelectorAll('script[data-giscus]').forEach(x=>x.remove());
+  const s=document.createElement('script');
+  s.src='https://giscus.app/client.js'; s.async=true; s.crossOrigin='anonymous'; s.dataset.giscus='1';
+  Object.entries({
+   'data-repo':'Piyush-1927/hayate-comments','data-repo-id':'R_kgDOVhLt7w',
+   'data-category':'Announcements','data-category-id':'DIC_kwDOVhLt784DKR-X',
+   'data-mapping':t.mapping,'data-term':t.term,'data-strict':t.strict,
+   'data-reactions-enabled':'1','data-emit-metadata':'0','data-input-position':'top',
+   'data-theme':theme,'data-lang':'en'
+  }).forEach(([k,v])=>s.setAttribute(k,v));
+  document.head.appendChild(s);
+}
+const bar=document.getElementById('tabs');
+if(theme==='light') bar.classList.add('light');
+if(tabs.length>1){
+  tabs.forEach((t,i)=>{
+    const b=document.createElement('button'); b.textContent=t.label;
+    b.onclick=()=>{[...bar.children].forEach(x=>x.classList.remove('on'));b.classList.add('on');load(t);};
+    bar.appendChild(b);
+  });
+  bar.firstChild.classList.add('on');
+} else bar.style.display='none';
+if(tabs.length) load(tabs[0]);
 </script>
