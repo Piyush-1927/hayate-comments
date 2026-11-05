@@ -13,7 +13,8 @@ jobs:
     steps:
       - uses: actions/github-script@v7
         env:
-          ALERT_WEBHOOK: ${{ secrets.ALERT_WEBHOOK }}
+          TG_TOKEN: ${{ secrets.TG_TOKEN }}
+          TG_CHAT_ID: ${{ secrets.TG_CHAT_ID }}
         with:
           script: |
             const c = context.payload.comment;
@@ -28,12 +29,17 @@ jobs:
             await github.graphql(
               `mutation($id:ID!){deleteDiscussionComment(input:{id:$id}){clientMutationId}}`,
               { id: c.node_id });
-            const url = process.env.ALERT_WEBHOOK;
-            if (url) {
-              await fetch(url, {
+            await github.rest.issues.create({
+              owner: context.repo.owner, repo: context.repo.repo,
+              title: `Deleted comment by @${c.user.login}`,
+              body: `Discussion: ${context.payload.discussion.html_url}\nMatched: ${hit}\nUser: https://github.com/${c.user.login}`
+            });
+            const {TG_TOKEN, TG_CHAT_ID} = process.env;
+            if (TG_TOKEN && TG_CHAT_ID) {
+              await fetch(`https://api.telegram.org/bot${TG_TOKEN}/sendMessage`, {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({content:
-                  `Deleted comment by @${c.user.login} on "${context.payload.discussion.title}"\nMatched: ${hit}`})
+                body: JSON.stringify({chat_id: TG_CHAT_ID,
+                  text: `Deleted comment by @${c.user.login}\nMatched: ${hit}\nText: ${c.body.slice(0,300)}\n${context.payload.discussion.html_url}`})
               });
             }
