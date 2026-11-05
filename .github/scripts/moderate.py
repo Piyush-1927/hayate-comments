@@ -59,6 +59,19 @@ def gql(query, var):
                  "Content-Type": "application/json"})
     print(urllib.request.urlopen(req).read().decode())
 
+def note(msg):
+    d = ev.get("discussion") or {}
+    if not d.get("node_id"):
+        return
+    req = urllib.request.Request(
+        "https://api.github.com/graphql",
+        data=json.dumps({
+            "query": "mutation($d:ID!,$b:String!){addDiscussionComment(input:{discussionId:$d,body:$b}){comment{id}}}",
+            "variables": {"d": d["node_id"], "b": msg}}).encode(),
+        headers={"Authorization": "bearer " + os.environ["GITHUB_TOKEN"],
+                 "Content-Type": "application/json"})
+    print(urllib.request.urlopen(req).read().decode())
+
 if "comment" in ev:
     obj, text = ev["comment"], ev["comment"].get("body", "")
     q = "mutation($id:ID!){deleteDiscussionComment(input:{id:$id}){clientMutationId}}"
@@ -73,5 +86,14 @@ if user.get("type") == "Bot" or obj.get("author_association") in ("OWNER", "MEMB
 elif bad(text) or directed(text):
     print("deleting", obj.get("node_id"))
     gql(q, obj["node_id"])
+    if "comment" in ev:
+        if bad(text):
+            why = "it contained language that is not allowed here"
+        else:
+            why = "it contained swearing aimed at someone, which is not allowed here"
+        who = ("@" + user["login"] + " ") if user.get("login") else ""
+        note(who + "your comment was removed automatically because " + why
+             + ". Swearing on its own is fine, but abuse aimed at people is not. "
+             "Please repost it reworded.")
 else:
     print("clean")
