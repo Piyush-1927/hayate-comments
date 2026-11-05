@@ -4,6 +4,7 @@ on:
     types: [created, edited]
 permissions:
   discussions: write
+  issues: write
   contents: read
 jobs:
   scan:
