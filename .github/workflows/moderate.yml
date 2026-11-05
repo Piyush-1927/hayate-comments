@@ -1,17 +1,38 @@
-name: moderate
+name: moderate-comments
 on:
-  discussion:
-    types: [created, edited]
   discussion_comment:
     types: [created, edited]
 permissions:
-  contents: read
   discussions: write
+  contents: read
 jobs:
   scan:
     runs-on: ubuntu-latest
+    if: github.event.comment.user.type != 'Bot' && github.event.comment.author_association != 'OWNER'
     steps:
-      - uses: actions/checkout@v4
-      - run: python3 .github/scripts/moderate.py
+      - uses: actions/github-script@v7
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ALERT_WEBHOOK: ${{ secrets.ALERT_WEBHOOK }}
+        with:
+          script: |
+            const c = context.payload.comment;
+            const text = c.body.toLowerCase().replace(/[^a-z0-9\s]/g, ' ').replace(/\s+/g, ' ');
+            const BLOCK = [
+              /\bfuck (you|u|off)\b/, /\bgo (die|kill yourself)\b/, /\bkys\b/,
+              /\bkill yourself\b/, /\byou (are|re) (a |an )?(idiot|retard|moron|trash)\b/,
+              // add slurs here, e.g. /\bword\b/
+            ];
+            const hit = BLOCK.find(r => r.test(text));
+            if (!hit) return;
+            await github.graphql(
+              `mutation($id:ID!){deleteDiscussionComment(input:{id:$id}){clientMutationId}}`,
+              { id: c.node_id });
+            const url = process.env.ALERT_WEBHOOK;
+            if (url) {
+              await fetch(url, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({content:
+                  `Deleted comment by @${c.user.login} on "${context.payload.discussion.title}"\nMatched: ${hit}`})
+              });
+            }
