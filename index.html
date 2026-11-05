@@ -11,7 +11,7 @@ html,body{margin:0;background:transparent}body{padding:0 12px;font:13px system-u
 const q=new URLSearchParams(location.search), theme=q.get('theme')||'transparent_dark';
 const n=q.get('n'), a=q.get('a'), ep=q.get('ep'), tabs=[];
 if(n) tabs.push({label:'Season', mapping:'number', term:n, strict:'0'});
-if(a&&ep) tabs.push({label:'Episode '+ep, mapping:'specific', term:'anilist-'+a+'-ep'+ep, strict:'1'});
+if(n&&a&&ep) tabs.push({label:'Episode '+ep, mapping:'specific', term:'anilist-'+a+'-ep'+ep, strict:'1'});
 if(!tabs.length&&n) tabs.push({label:'Season', mapping:'number', term:n, strict:'0'});
 function load(t){
   const g=document.getElementById('g'); g.innerHTML='';
